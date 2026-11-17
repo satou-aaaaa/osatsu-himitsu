@@ -229,7 +229,7 @@ try {
   }
   {
     // 遊び方を Esc で閉じた人にも、次から出さない
-    const q = await newPage(); await q.waitForSelector("#howto[open]"); await q.keyboard.press("Escape"); await q.waitForTimeout(100);
+    const q = await newPage(); await q.waitForSelector("#howto[open]"); await q.keyboard.press("Escape");
     await q.reload(); await q.waitForTimeout(200);
     check("遊び方を Esc で閉じても「見た」が残り、開き直しても出ない", (await mem(q)).tut === true && await q.locator("#howto[open]").count() === 0);
     await q.context().close();
