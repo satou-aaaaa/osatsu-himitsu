@@ -219,6 +219,36 @@ try {
   await p.click("#quit"); await p.waitForTimeout(150);
   check("「ここで降りる」で終わり、自己ベストは一度で見つけた数（2枚）", (await mem(p)).ebest === 2 && (await p.textContent("#ebest")).includes("一度で見つけた 2枚") && !(await mem(p)).runs.e);
   {
+    // 「ここで降りる」は正解した直後でも効き、その1枚も数える（drift-check：kyuyo-meisai 1bebfdc の直し方）
+    const q = await newPage(); await closeHow(q); await q.click("#go-e");
+    await solve(q);
+    check("とことんで正解した直後も「ここで降りる」が見えて、押した数に正解した1枚が入っている", await q.locator("#quit:not([hidden])").count() === 1 && (await q.textContent("#quit")).includes("1枚"));
+    await q.click("#quit"); await q.waitForTimeout(150);
+    check("正解した直後に「ここで降りる」を押すと終わり、その1枚も一度で見つけた数に入る", (await mem(q)).ebest === 1 && !(await mem(q)).runs.e);
+    await q.context().close();
+  }
+  {
+    // 遊び方を Esc で閉じた人にも、次から出さない
+    const q = await newPage(); await q.waitForSelector("#howto[open]"); await q.keyboard.press("Escape"); await q.waitForTimeout(100);
+    await q.reload(); await q.waitForTimeout(200);
+    check("遊び方を Esc で閉じても「見た」が残り、開き直しても出ない", (await mem(q)).tut === true && await q.locator("#howto[open]").count() === 0);
+    await q.context().close();
+  }
+  {
+    // 保存できないブラウザ：帯で知らせ続け、保存できたら消す（黙っていると開き直したとき記録が消える）
+    const c = await browser.newContext({ viewport: { width: 390, height: 800 } });
+    await c.addInitScript(() => { window.__orig = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error("full"); }; });
+    const q = await newPage(390, c); await closeHow(q); await q.click("#go-d"); await solve(q);
+    const nw = await q.locator("#savewarn").count(), one = nw === 1 && (await q.textContent("#savewarn")).includes("保存できませんでした");
+    await q.waitForTimeout(1500);
+    const stay = (await q.locator("#savewarn").count()) === 1 && (await q.textContent("#live")).includes("保存できませんでした");
+    await q.evaluate(() => { Storage.prototype.setItem = window.__orig; });
+    // 復習の控え（depth.js）が残っているあいだは帯を消さない作り（template/depth.js 版3）なので、2枚解いて両方が保存し直されてから見る
+    await q.click("#next"); await solve(q); await q.click("#next"); await solve(q);
+    check("保存できないと帯がちょうど1つ出て（読み上げの知らせにも出る）残り、保存できるようになったら消える", one && stay && (await q.locator("#savewarn").count()) === 0, `帯${nw} stay=${stay}`);
+    await c.close();
+  }
+  {
     // 引き継ぎコードなどで数の所に文字が入っても、画面に HTML として出さない
     const q = await newPage(); await closeHow(q);
     await q.evaluate(() => { const s = JSON.parse(localStorage.getItem("osatsu-v1")) || { v: 1 }; s.ebest = '<img id="xss" src=x>'; s.okc = "x"; s.dex = { suka: '"><b id="xss2">' }; s.runs = { h: { list: "bad", res: [] }, p: { mode: "p", id: "y", date: "2026-11-17", list: ["constructor|1"], res: [] }, d: { mode: "d", id: "z", date: "x", list: ["suka|1"], res: [] }, "a:2026-11-17": { mode: "a", id: "a3", date: "2026-11-17", list: ["suka|1", "zara|2"], res: [{ m: 0 }], cur: { i: 1, tag: "zara|2", wrong: "x", hints: 0 } } }; s.days = { "2026-11-17": { m: "x" }, bad: { m: [0] }, "2026-02-30": { m: [0] } }; localStorage.setItem("osatsu-v1", JSON.stringify(s)); });
