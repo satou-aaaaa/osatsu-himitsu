@@ -28,6 +28,7 @@ jobs:
       # Secret scan を入れたリポジトリは "scan / scan" も足す
       require_checks: |
         qa / qa
+        scan / scan
       # 動いたときだけ成功を待つ検査。準備のファイルを変えた PR は Setup check が通るまでマージしない（2026-11-07 atsusa-shisu #1・#252 の CodeRabbit）
       present_checks: |
         setup / setup

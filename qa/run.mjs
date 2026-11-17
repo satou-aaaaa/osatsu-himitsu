@@ -312,7 +312,8 @@ try {
     const a = await newPage(390, ctx); await closeHow(a); await a.click("#go-d");
     const b = await ctx.newPage(); b.on("pageerror", (e) => errors.push(e.message)); await b.goto(url); await b.waitForTimeout(150); await b.click("#go-d");
     await solve(a);
-    await b.click(sel(await ansIdx(b)));
+    await b.click(sel(await ansIdx(b))); await b.waitForTimeout(100);
+    if (await b.locator(".why button:not(:disabled)").count()) { await b.click(`.why button[data-r="${await b.evaluate(() => __km.cur().P.rule)}"]`); } // 2段目まで答え切っても二重に数えない
     await b.waitForTimeout(200);
     const s = await mem(a);
     check("古いタブで同じお札に答えても二重に数えない", s.runs.d.res.length === 1 && Object.values(s.dex).reduce((x, y) => x + y) === 1);
@@ -490,7 +491,7 @@ try {
 
 // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
 try {
-  const sample = { "osatsu-v1": JSON.stringify({ v: 1, tut: true, days: { "2026-11-17": { m: [0, 1, 0, 0, 2], k: ["bar", "zara", "pearl", "senzo", "mark"] } }, hdays: {}, adays: {}, dex: { bar: 1, zara: 1, pearl: 1, senzo: 1, mark: 1 }, okc: 1, runs: {}, kofi: {}, ach: {}, ebest: 7, t: 1 }) };
+  const sample = { "osatsu-v1": JSON.stringify({ v: 1, tut: true, days: { "2026-11-17": { m: [0, 1, 0, 0, 2], k: ["bar", "zara", "pearl", "senzo", "mark"] } }, hdays: {}, adays: {}, dex: { bar: 1, zara: 1, pearl: 1, senzo: 1, mark: 1 }, okc: 1, runs: {}, kofi: {}, ach: {}, ebest: 7, t: 1 }), "osatsu-depth": JSON.stringify({ v: 1, rv: { "bar|qa1|x": { s: 1, due: "2026-11-20", t: 5, lab: "すき入れバーパターン" } }, sure: 3, sureOk: 2, learned: 1 }) }; // 復習の記録も一緒に引き継ぐ（2026-11-17 CodeRabbit）
   await checkTransfer({ browser, url, game: "osatsu-himitsu", sample, check, open: async (pg) => { if (await pg.locator("#howto[open]").count()) await pg.click("#howto-ok"); } });
 } catch (e) { check("引き継ぎの検査が最後まで動く", false, e.message.split("\n")[0]); }
 await browser.close();
