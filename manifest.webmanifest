@@ -1,0 +1,16 @@
+{
+  "name": "お札のひみつ",
+  "short_name": "お札のひみつ",
+  "description": "お札の偽造を防ぐしかけを調べる1日5枚。国立印刷局・日本銀行の資料に基づく学習ゲーム",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3eee4",
+  "theme_color": "#f3eee4",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
