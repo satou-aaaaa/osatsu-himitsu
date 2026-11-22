@@ -16,6 +16,7 @@ import { checkDepth } from "./depth-check.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: String(detail).slice(0, 400) });
+const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.locator("#core-coach").count()) { await q.evaluate(() => Core.coach.leave()); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
 const G = createRequire(import.meta.url)(path.join(root, "gen.js"));
 
 // ---- 1. お札の作り方（ブラウザを使わない）----
@@ -128,7 +129,7 @@ async function newPage(w = 390, ctx) {
   await p.goto(url); await p.waitForTimeout(200);
   return p;
 }
-const closeHow = async (p) => { if (await p.locator("#howto[open]").count()) await p.click("#howto-ok"); };
+const closeHow = async (p) => { await firstClose(p); };
 const sel = (j) => (j === -1 ? "#okbtn" : `.pt[data-j="${j}"]`);
 const ansIdx = (p) => p.evaluate(() => __km.cur().P.ans);
 const wrongIdx = (p) => p.evaluate(() => { const c = __km.cur(), all = [...c.P.parts.map((_, j) => j), -1]; return all.find((j) => j !== c.P.ans && !c.wrong.includes(j)); });
@@ -144,8 +145,8 @@ async function solve(p, { wrong = 0 } = {}) {
 
 try {
   const p = await newPage();
-  check("はじめて開くと遊び方が出る", await p.locator("#howto[open]").count() === 1);
-  await p.click("#howto-ok");
+  check("はじめて開くと遊び方が出る", await p.locator("#core-coach").waitFor({ timeout: 3000 }).then(() => true, () => false));
+  await firstClose(p);
   check("ホームに今日のコツが出る・上級・とことん・練習ははじめから押せる", (await p.textContent("#tip")).includes("今日のコツ") && await p.locator("#go-h:not([disabled])").count() === 1 && await p.locator("#go-e").count() === 1 && await p.locator("#go-p").count() === 1);
 
   // 今日の5枚：1枚目はまちがえる、2枚目はヒント2回、ほかはそのまま
@@ -229,7 +230,7 @@ try {
   }
   {
     // 遊び方を Esc で閉じた人にも、次から出さない
-    const q = await newPage(); await q.waitForSelector("#howto[open]"); await q.keyboard.press("Escape");
+    const q = await newPage(); await q.waitForSelector("#core-coach"); await q.keyboard.press("Escape");
     await q.reload(); await q.waitForTimeout(200);
     check("遊び方を Esc で閉じても「見た」が残り、開き直しても出ない", (await mem(q)).tut === true && await q.locator("#howto[open]").count() === 0);
     await q.context().close();
@@ -492,7 +493,7 @@ try {
 // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
 try {
   const sample = { "osatsu-v1": JSON.stringify({ v: 1, tut: true, days: { "2026-11-17": { m: [0, 1, 0, 0, 2], k: ["bar", "zara", "pearl", "senzo", "mark"] } }, hdays: {}, adays: {}, dex: { bar: 1, zara: 1, pearl: 1, senzo: 1, mark: 1 }, okc: 1, runs: {}, kofi: {}, ach: {}, ebest: 7, t: 1 }), "osatsu-depth": JSON.stringify({ v: 1, rv: { "bar|qa1|x": { s: 1, due: "2026-11-20", t: 5, lab: "すき入れバーパターン" } }, sure: 3, sureOk: 2, learned: 1 }) }; // 復習の記録も一緒に引き継ぐ（2026-11-17 CodeRabbit）
-  await checkTransfer({ browser, url, game: "osatsu-himitsu", sample, check, open: async (pg) => { if (await pg.locator("#howto[open]").count()) await pg.click("#howto-ok"); } });
+  await checkTransfer({ browser, url, game: "osatsu-himitsu", sample, check, open: async (pg) => { await firstClose(pg); } });
 } catch (e) { check("引き継ぎの検査が最後まで動く", false, e.message.split("\n")[0]); }
 await browser.close();
 server.close();
